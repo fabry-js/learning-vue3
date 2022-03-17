@@ -3,57 +3,44 @@ import { onMounted, Ref, ref } from "vue";
 import axios from "axios";
 
 import { apiUrl } from "../constants";
+import { transformNames } from "./utils";
+import { useNamesStore } from "../store/genshinNames";
 
-const data: Ref<string[]> = ref([])
+const alertShown = ref(false)
+const namesState = useNamesStore()
+const selectedName = ref("")
 
-onMounted(async() => {
+onMounted(async () => {
   await axios.get(`${apiUrl}/characters`)
     .then((res) => {
-      const originData: string[] = res.data
-      const finalArr: string[] = []
-
-      originData.forEach((charName) => {
-        let _uppedName = charName.replace(charName[0], charName[0].toUpperCase())
-        let finalName = ""
-        if(_uppedName.includes("-") === true){
-          const _dashNameArray = _uppedName.replace("-", " ").split(" ")
-          const _dashNameFirstUppedPortion = _dashNameArray[0]
-          const _dashNameLowerPortion = _dashNameArray[1]
-          const _uppedLowerPortion = _dashNameLowerPortion.replace(_dashNameLowerPortion[0], _dashNameLowerPortion[0].toUpperCase())
-
-          finalName = `${_dashNameFirstUppedPortion} ${_uppedLowerPortion}`
-        } else {
-          finalName = _uppedName
-        }
-        finalArr.push(finalName)
-      })
-
-      data.value = finalArr
+      namesState.$patch({ names: transformNames(res) })
     })
 })
 
+function showAlert(name: string) {
+  selectedName.value = name
+  alertShown.value = !alertShown.value
+}
 </script>
 
 <template>
-  <div v-for="pg in data">
-    {{ pg }}
+  <div v-if="alertShown">
+    <v-alert id="test-alert" type="info">{{ selectedName }}</v-alert>
+  </div>
+  <div v-for="name in namesState.names">
+    <v-card contained-text>
+      <v-card-header>
+        <v-card-header-text>
+          <v-card-title>{{ name }}</v-card-title>
+        </v-card-header-text>
+      </v-card-header>
+
+      <v-card-actions>
+        <v-btn @click="showAlert(name)">Show Message</v-btn>
+      </v-card-actions>
+    </v-card>
   </div>
 </template>
 
 <style scoped>
-a {
-  color: #42b983;
-}
-
-label {
-  margin: 0 0.5em;
-  font-weight: bold;
-}
-
-code {
-  background-color: #eee;
-  padding: 2px 4px;
-  border-radius: 4px;
-  color: #304455;
-}
 </style>
